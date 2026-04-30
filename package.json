@@ -2,5 +2,6 @@
   "name": "english-api",
   "version": "1.0.0",
   "description": "Translation API for English learning app",
-  "main": "api/translate.js"
+  "main": "api/translate.js",
+  "dependencies": {}
 }
