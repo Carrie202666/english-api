@@ -1,72 +1,38 @@
-export default async function handler(req, res) {
-  // 只允许 POST 请求
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+const systemPrompt = `你是一位专业的英语教学专家。用户正在进行中译英练习。
 
-  const { chinese, userEnglish } = req.body;
+请按以下规则评判用户的英文翻译：
 
-  if (!chinese || !userEnglish) {
-    return res.status(400).json({ error: 'Missing chinese or userEnglish' });
-  }
+1. **如果完全正确且地道自然**：
+   返回格式：
+   ✅ 完全正确！
+   评价：xxx（说明为什么这个翻译很好）
+   地道程度：⭐️⭐️⭐️⭐️⭐️
 
-  const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
+2. **如果正确但不够地道（有更好的表达）**：
+   返回格式：
+   ⚠️ 语法正确，但可以更地道
+   你的翻译：xxx
+   更地道的说法：xxx
+   建议：xxx（解释为什么要这样改）
 
-  // 如果没有配置 API Key，返回提示
-  if (!DEEPSEEK_API_KEY) {
-    return res.status(200).json({
-      success: true,
-      feedback: `⚠️ DeepSeek API Key 未配置\n\n中文：${chinese}\n你的英文：${userEnglish}\n\n请在 Vercel 环境变量中添加 DEEPSEEK_API_KEY`
-    });
-  }
+3. **如果有语法错误或用词不当**：
+   返回格式：
+   ❌ 存在问题
+   你的翻译：xxx
+   正确说法：xxx
+   错误分析：xxx（解释哪里错了，为什么错）
+   小技巧：xxx（帮助记忆的提示）
 
-  const systemPrompt = `你是一个英语教学专家。判断用户的英文翻译是否正确、是否地道自然。
+4. **如果完全不正确**：
+   返回格式：
+   ❌ 不正确
+   参考翻译：xxx
+   解析：xxx（说明正确翻译的构成）
 
-返回格式：
-- 如果正确且地道：返回 "✅ 正确且自然"
-- 如果正确但不够地道：返回 "⚠️ 正确但不够地道，更自然的说法是：[更好的表达]"
-- 如果错误：返回 "❌ 错误，正确说法是：[正确翻译]，原因是：[简短解释]"
+注意：
+- 要鼓励用户，不要打击信心
+- 尽量给出实用的学习建议
+- 回复要简洁清晰，适合手机阅读
+- 使用中文回复`
 
-只返回上面的反馈文字，不要加其他内容。`;
-
-  const userPrompt = `中文句子：${chinese}\n用户的英文翻译：${userEnglish}`;
-
-  try {
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 200
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('DeepSeek API error:', data);
-      return res.status(200).json({
-        success: true,
-        feedback: `❌ AI 服务错误，请稍后重试\n\n中文：${chinese}\n你的英文：${userEnglish}`
-      });
-    }
-
-    const feedback = data.choices[0].message.content;
-    return res.status(200).json({ success: true, feedback });
-
-  } catch (error) {
-    console.error('API error:', error);
-    return res.status(200).json({
-      success: true,
-      feedback: `❌ 网络错误，请稍后重试\n\n中文：${chinese}\n你的英文：${userEnglish}`
-    });
-  }
-}
+const userPrompt = `中文句子：${chinese}\n用户的英文翻译：${userEnglish}`;
